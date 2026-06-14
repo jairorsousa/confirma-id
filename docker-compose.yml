@@ -1,0 +1,147 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: confirmaid-app
+    container_name: confirmaid-app
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+      - vendor:/var/www/html/vendor
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    networks:
+      - confirmaid
+
+  web:
+    image: nginx:1.27-alpine
+    container_name: confirmaid-web
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      - ./:/var/www/html:ro
+      - vendor:/var/www/html/vendor:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    networks:
+      - confirmaid
+
+  node:
+    image: node:22-alpine
+    container_name: confirmaid-node
+    working_dir: /var/www/html
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    ports:
+      - "${VITE_PORT:-5173}:5173"
+    volumes:
+      - ./:/var/www/html
+      - node_modules:/var/www/html/node_modules
+    networks:
+      - confirmaid
+
+  queue:
+    image: confirmaid-app
+    container_name: confirmaid-queue
+    working_dir: /var/www/html
+    command: php artisan queue:work --sleep=3 --tries=3 --timeout=120
+    volumes:
+      - ./:/var/www/html
+      - vendor:/var/www/html/vendor
+    depends_on:
+      - app
+      - postgres
+      - redis
+    networks:
+      - confirmaid
+
+  scheduler:
+    image: confirmaid-app
+    container_name: confirmaid-scheduler
+    working_dir: /var/www/html
+    command: sh -c "while true; do php artisan schedule:run --no-interaction; sleep 60; done"
+    volumes:
+      - ./:/var/www/html
+      - vendor:/var/www/html/vendor
+    depends_on:
+      - app
+      - postgres
+      - redis
+    networks:
+      - confirmaid
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: confirmaid-postgres
+    ports:
+      - "${DB_FORWARD_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-confirma_id}
+      POSTGRES_USER: ${DB_USERNAME:-confirma_id}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-confirma_id}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - confirmaid
+
+  redis:
+    image: redis:7-alpine
+    container_name: confirmaid-redis
+    ports:
+      - "${REDIS_FORWARD_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - confirmaid
+
+  minio:
+    image: minio/minio:latest
+    container_name: confirmaid-minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "${MINIO_FORWARD_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_FORWARD_PORT:-9001}:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-confirmaid}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-confirmaid-secret}
+    volumes:
+      - minio_data:/data
+    networks:
+      - confirmaid
+
+  minio-create-bucket:
+    image: minio/mc:latest
+    container_name: confirmaid-minio-create-bucket
+    entrypoint: /bin/sh /create-bucket.sh
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-confirmaid}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-confirmaid-secret}
+    volumes:
+      - ./docker/minio/create-bucket.sh:/create-bucket.sh:ro
+    depends_on:
+      - minio
+    networks:
+      - confirmaid
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: confirmaid-mailpit
+    ports:
+      - "${MAILPIT_FORWARD_PORT:-8025}:8025"
+    networks:
+      - confirmaid
+
+networks:
+  confirmaid:
+    driver: bridge
+
+volumes:
+  vendor:
+  node_modules:
+  postgres_data:
+  redis_data:
+  minio_data:
