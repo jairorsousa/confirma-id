@@ -11,7 +11,7 @@ Plataforma de verificacao de identidade digital reutilizavel, seguindo o PRD e o
 - Mailpit para e-mails locais
 - Docker Compose para toda a infraestrutura
 
-> Observacao: o starter oficial React disponivel no momento instalou Laravel `12.62.0`. A estrutura foi preparada para seguir o plano do projeto e pode ser atualizada para Laravel 13 quando o template/dependencias estiverem alinhados.
+> Observacao: o projeto esta padronizado em Laravel `12.62.0`.
 
 ## Primeira execucao
 

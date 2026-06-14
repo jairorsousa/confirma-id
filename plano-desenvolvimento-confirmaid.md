@@ -22,7 +22,7 @@ git@github.com:jairorsousa/confirma-id.git
 
 ### Backend
 
-- Laravel 13
+- Laravel 12.62.0
 - PHP 8.3+
 - Laravel Sanctum para autenticacao SPA e tokens de API
 - Spatie Laravel Permission para papeis e permissoes
@@ -203,7 +203,7 @@ git push -u origin main
 
 ### Tarefas
 
-1. Criar aplicacao Laravel 13.
+1. Criar aplicacao Laravel 12.62.0.
 2. Instalar starter kit Laravel com React, TypeScript, Inertia, Tailwind e shadcn/ui.
 3. Configurar Docker Compose com servicos:
    - `app`
@@ -860,7 +860,7 @@ O MVP sera considerado pronto quando:
 ### Sprint 1 - Fundacao
 
 1. Inicializar Git e configurar remote.
-2. Criar Laravel 13 com starter kit React/Inertia.
+2. Criar Laravel 12.62.0 com starter kit React/Inertia.
 3. Criar Docker Compose completo.
 4. Configurar PostgreSQL, Redis, MinIO e Mailpit.
 5. Criar `.env.example`.
