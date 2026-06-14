@@ -1,7 +1,10 @@
 import { LucideIcon } from 'lucide-react';
 
 export interface Auth {
-    user: User;
+    permissions: string[];
+    role_home: string | null;
+    roles: string[];
+    user: User | null;
 }
 
 export interface BreadcrumbItem {

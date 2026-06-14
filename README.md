@@ -21,6 +21,7 @@ docker compose up -d --build
 docker compose exec app composer install
 docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate
+docker compose exec app php artisan db:seed
 ```
 
 ## Serviços locais
@@ -44,6 +45,14 @@ MinIO
 User: confirmaid
 Password: confirmaid-secret
 Bucket: confirma-id
+
+Usuarios da aplicacao criados por `php artisan db:seed`
+Senha: password
+
+Usuario final: user@confirmaid.local
+Parceiro: partner@confirmaid.local
+Admin: admin@confirmaid.local
+Super admin: superadmin@confirmaid.local
 ```
 
 ## Comandos úteis
@@ -55,6 +64,7 @@ docker compose logs -f app
 docker compose exec app php artisan test
 docker compose exec node npm run build
 docker compose exec app php artisan migrate
+docker compose exec app php artisan db:seed
 ```
 
 ## Documentacao do produto

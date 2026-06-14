@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\RoleRedirector;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -38,12 +39,17 @@ class HandleInertiaRequests extends Middleware
     {
         [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
 
+        $user = $request->user();
+
         return array_merge(parent::share($request), [
             ...parent::share($request),
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'auth' => [
-                'user' => $request->user(),
+                'permissions' => $user?->getAllPermissions()->pluck('name')->values() ?? [],
+                'roles' => $user?->getRoleNames()->values() ?? [],
+                'role_home' => $user ? RoleRedirector::pathFor($user) : null,
+                'user' => $user,
             ],
         ]);
     }
