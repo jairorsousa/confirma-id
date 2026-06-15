@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\App\UserVerificationController;
 use App\Support\RoleRedirector;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -13,9 +14,13 @@ Route::middleware(['auth'])->group(function () {
         return redirect(RoleRedirector::pathFor(request()->user()));
     })->name('dashboard');
 
-    Route::get('app', function () {
-        return Inertia::render('app/dashboard');
-    })->middleware('role:user|admin|super_admin')->name('app.dashboard');
+    Route::get('app', [UserVerificationController::class, 'show'])
+        ->middleware('role:user|admin|super_admin')
+        ->name('app.dashboard');
+
+    Route::post('app/verification', [UserVerificationController::class, 'store'])
+        ->middleware('role:user')
+        ->name('app.verification.store');
 
     Route::get('partner', function () {
         return Inertia::render('partner/dashboard');
