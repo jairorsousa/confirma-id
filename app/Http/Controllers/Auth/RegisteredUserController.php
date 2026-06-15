@@ -49,6 +49,15 @@ class RegisteredUserController extends Controller
 
         $user->assignRole(Role::findOrCreate('user', 'web'));
 
+        activity()
+            ->performedOn($user)
+            ->causedBy($user)
+            ->event('registered')
+            ->withProperties([
+                'role' => 'user',
+            ])
+            ->log('user.registered');
+
         Auth::login($user);
 
         return redirect(RoleRedirector::pathFor($user));

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Verifications\Schemas;
 use App\Models\Verification;
 use App\Models\VerificationFile;
 use App\Models\VerificationReview;
+use App\Support\SensitiveData;
 use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
@@ -26,10 +27,11 @@ class VerificationInfolist
                                     ->label('Nome completo')
                                     ->placeholder('-'),
                                 TextEntry::make('user.email')
-                                    ->label('E-mail'),
+                                    ->label('E-mail')
+                                    ->formatStateUsing(fn (?string $state): string => SensitiveData::email($state)),
                                 TextEntry::make('user.profile.cpf')
                                     ->label('CPF')
-                                    ->formatStateUsing(fn (?string $state): string => self::maskCpf($state))
+                                    ->formatStateUsing(fn (?string $state): string => SensitiveData::cpf($state))
                                     ->placeholder('-'),
                                 TextEntry::make('user.profile.birth_date')
                                     ->label('Nascimento')
@@ -37,6 +39,7 @@ class VerificationInfolist
                                     ->placeholder('-'),
                                 TextEntry::make('user.profile.phone')
                                     ->label('Telefone')
+                                    ->formatStateUsing(fn (?string $state): string => SensitiveData::phone($state))
                                     ->placeholder('-'),
                                 TextEntry::make('attempt_number')
                                     ->label('Tentativa')
@@ -86,18 +89,15 @@ class VerificationInfolist
                             ->schema([
                                 ImageEntry::make('front_document')
                                     ->label('Frente do documento')
-                                    ->state(fn (Verification $record): ?string => self::filePath($record, VerificationFile::TYPE_FRONT))
-                                    ->disk('s3')
+                                    ->state(fn (Verification $record): ?string => self::fileUrl($record, VerificationFile::TYPE_FRONT))
                                     ->height(220),
                                 ImageEntry::make('back_document')
                                     ->label('Verso do documento')
-                                    ->state(fn (Verification $record): ?string => self::filePath($record, VerificationFile::TYPE_BACK))
-                                    ->disk('s3')
+                                    ->state(fn (Verification $record): ?string => self::fileUrl($record, VerificationFile::TYPE_BACK))
                                     ->height(220),
                                 ImageEntry::make('selfie_document')
                                     ->label('Selfie')
-                                    ->state(fn (Verification $record): ?string => self::filePath($record, VerificationFile::TYPE_SELFIE))
-                                    ->disk('s3')
+                                    ->state(fn (Verification $record): ?string => self::fileUrl($record, VerificationFile::TYPE_SELFIE))
                                     ->height(220),
                             ]),
                     ]),
@@ -130,9 +130,11 @@ class VerificationInfolist
             ]);
     }
 
-    private static function filePath(Verification $verification, string $type): ?string
+    private static function fileUrl(Verification $verification, string $type): ?string
     {
-        return $verification->files->firstWhere('file_type', $type)?->path;
+        $file = $verification->files->firstWhere('file_type', $type);
+
+        return $file ? route('admin.verification-files.show', $file) : null;
     }
 
     /**
@@ -161,16 +163,5 @@ class VerificationInfolist
             VerificationReview::DECISION_CORRECTION_REQUESTED => 'Correcao solicitada',
             VerificationReview::DECISION_BLOCKED => 'Bloqueada',
         ];
-    }
-
-    private static function maskCpf(?string $cpf): string
-    {
-        $digits = preg_replace('/\D/', '', (string) $cpf);
-
-        if (strlen($digits) !== 11) {
-            return $cpf ?: '-';
-        }
-
-        return substr($digits, 0, 3).'.'.substr($digits, 3, 3).'.'.substr($digits, 6, 3).'-'.substr($digits, 9, 2);
     }
 }

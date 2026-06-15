@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Verifications\Tables;
 
 use App\Models\Verification;
+use App\Support\SensitiveData;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -20,7 +21,7 @@ class VerificationsTable
                     ->sortable(),
                 TextColumn::make('user.profile.cpf')
                     ->label('CPF')
-                    ->formatStateUsing(fn (?string $state): string => self::maskCpf($state))
+                    ->formatStateUsing(fn (?string $state): string => SensitiveData::cpf($state))
                     ->searchable(),
                 TextColumn::make('attempt_number')
                     ->label('Tentativa')
@@ -92,16 +93,5 @@ class VerificationsTable
             Verification::STATUS_CORRECTION_REQUESTED => 'Correcao solicitada',
             Verification::STATUS_BLOCKED => 'Bloqueada',
         ];
-    }
-
-    private static function maskCpf(?string $cpf): string
-    {
-        $digits = preg_replace('/\D/', '', (string) $cpf);
-
-        if (strlen($digits) !== 11) {
-            return $cpf ?: '-';
-        }
-
-        return substr($digits, 0, 3).'.'.substr($digits, 3, 3).'.'.substr($digits, 6, 3).'-'.substr($digits, 9, 2);
     }
 }

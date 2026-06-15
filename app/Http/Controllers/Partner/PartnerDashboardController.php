@@ -21,6 +21,10 @@ class PartnerDashboardController extends Controller
         $membership = $resolver->firstMembership($request->user());
         $partner = $membership?->partner;
 
+        if ($partner) {
+            $this->authorize('view', $partner);
+        }
+
         return Inertia::render('partner/dashboard', [
             'partner' => $partner ? $this->partnerPayload($partner) : null,
             'stats' => $partner ? $this->statsPayload($partner) : $this->emptyStats(),
@@ -46,6 +50,8 @@ class PartnerDashboardController extends Controller
             throw new AuthorizationException('Nenhum parceiro ativo encontrado para este usuario.');
         }
 
+        $this->authorize('query', $membership->partner);
+
         try {
             $result = $queryIdentity->handle(
                 partner: $membership->partner,
@@ -54,6 +60,7 @@ class PartnerDashboardController extends Controller
                 ipAddress: $request->ip(),
                 origin: 'web',
                 credentialLabel: $request->user()->email,
+                actor: $request->user(),
             );
         } catch (AuthorizationException $exception) {
             return back()

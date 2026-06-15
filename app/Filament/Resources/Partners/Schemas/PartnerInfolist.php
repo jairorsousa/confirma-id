@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Partners\Schemas;
 
+use App\Support\SensitiveData;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Schema;
 
@@ -17,8 +18,11 @@ class PartnerInfolist
                 TextEntry::make('cnpj'),
                 TextEntry::make('responsible_name'),
                 TextEntry::make('email')
-                    ->label('Email address'),
-                TextEntry::make('phone'),
+                    ->label('E-mail')
+                    ->formatStateUsing(fn (?string $state): string => SensitiveData::email($state)),
+                TextEntry::make('phone')
+                    ->label('Telefone')
+                    ->formatStateUsing(fn (?string $state): string => SensitiveData::phone($state)),
                 TextEntry::make('status'),
                 TextEntry::make('plan_name')
                     ->label('Plano'),

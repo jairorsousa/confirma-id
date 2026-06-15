@@ -112,7 +112,7 @@ class UserVerificationController extends Controller
             );
 
             foreach (['terms_of_use', 'privacy_policy'] as $consentType) {
-                Consent::updateOrCreate(
+                $consent = Consent::updateOrCreate(
                     [
                         'user_id' => $user->id,
                         'type' => $consentType,
@@ -123,6 +123,16 @@ class UserVerificationController extends Controller
                         'ip_address' => $request->ip(),
                     ],
                 );
+
+                activity()
+                    ->performedOn($consent)
+                    ->causedBy($user)
+                    ->event('accepted')
+                    ->withProperties([
+                        'type' => $consentType,
+                        'version' => '1.0',
+                    ])
+                    ->log('consent.accepted');
             }
 
             $verification = $user->verifications()->create([
@@ -135,6 +145,21 @@ class UserVerificationController extends Controller
             $this->storeVerificationFile($verification, VerificationFile::TYPE_FRONT, $request->file('document_front'));
             $this->storeVerificationFile($verification, VerificationFile::TYPE_BACK, $request->file('document_back'));
             $this->storeVerificationFile($verification, VerificationFile::TYPE_SELFIE, $request->file('selfie'));
+
+            activity()
+                ->performedOn($verification)
+                ->causedBy($user)
+                ->event('documents_uploaded')
+                ->withProperties([
+                    'document_type' => $verification->document_type,
+                    'attempt_number' => $verification->attempt_number,
+                    'file_types' => [
+                        VerificationFile::TYPE_FRONT,
+                        VerificationFile::TYPE_BACK,
+                        VerificationFile::TYPE_SELFIE,
+                    ],
+                ])
+                ->log('verification.documents_uploaded');
         });
 
         return to_route('app.dashboard')->with('status', 'verification-submitted');

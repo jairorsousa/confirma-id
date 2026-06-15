@@ -6,6 +6,7 @@ use App\Models\Partner;
 use App\Models\PartnerQuery;
 use App\Models\User;
 use App\Models\Verification;
+use App\Support\SensitiveData;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 
@@ -21,6 +22,7 @@ class QueryIdentity
         ?string $ipAddress = null,
         string $origin = 'web',
         ?string $credentialLabel = null,
+        ?User $actor = null,
     ): array {
         if ($partner->status !== Partner::STATUS_ACTIVE) {
             throw new AuthorizationException('Parceiro inativo nao pode consultar identidades.');
@@ -39,6 +41,7 @@ class QueryIdentity
                 ipAddress: $ipAddress,
                 origin: $origin,
                 credentialLabel: $credentialLabel,
+                actor: $actor,
             );
 
             throw new AuthorizationException('Parceiro sem permissao para consulta por CPF.');
@@ -59,6 +62,7 @@ class QueryIdentity
             ipAddress: $ipAddress,
             origin: $origin,
             credentialLabel: $credentialLabel,
+            actor: $actor,
         );
 
         return $this->safePayload($user, $verification, $result);
@@ -120,7 +124,7 @@ class QueryIdentity
             'status' => $result,
             'verification_code' => $verified ? $verification?->verification_code : null,
             'name' => $user?->profile?->full_name ?: $user?->name,
-            'document_masked' => $this->maskCpf($user?->profile?->cpf),
+            'document_masked' => $user ? SensitiveData::cpf($user->profile?->cpf, '') : null,
             'verified_at' => $verified ? $verification?->approved_at?->toDateString() : null,
             'expires_at' => $verified ? $verification?->expires_at?->toDateString() : null,
         ];
@@ -136,9 +140,10 @@ class QueryIdentity
         ?string $ipAddress,
         string $origin,
         ?string $credentialLabel,
+        ?User $actor,
     ): void {
-        DB::transaction(function () use ($partner, $user, $queryType, $normalizedTerm, $maskedTerm, $result, $ipAddress, $origin, $credentialLabel): void {
-            $partner->queries()->create([
+        DB::transaction(function () use ($partner, $user, $queryType, $normalizedTerm, $maskedTerm, $result, $ipAddress, $origin, $credentialLabel, $actor): void {
+            $query = $partner->queries()->create([
                 'user_id' => $user?->id,
                 'query_type' => $queryType,
                 'queried_term_hash' => hash('sha256', $normalizedTerm),
@@ -148,6 +153,20 @@ class QueryIdentity
                 'origin' => $origin,
                 'credential_label' => $credentialLabel,
             ]);
+
+            activity()
+                ->performedOn($query)
+                ->causedBy($actor)
+                ->event('queried')
+                ->withProperties([
+                    'partner_id' => $partner->id,
+                    'query_type' => $queryType,
+                    'queried_term_masked' => $maskedTerm,
+                    'result' => $result,
+                    'origin' => $origin,
+                    'credential_label' => $credentialLabel,
+                ])
+                ->log('partner.query');
         });
     }
 
@@ -166,28 +185,10 @@ class QueryIdentity
     private function maskTerm(string $queryType, string $normalizedTerm): ?string
     {
         return match ($queryType) {
-            PartnerQuery::TYPE_EMAIL => $this->maskEmail($normalizedTerm),
-            PartnerQuery::TYPE_CPF => $this->maskCpf($normalizedTerm),
+            PartnerQuery::TYPE_EMAIL => SensitiveData::email($normalizedTerm, ''),
+            PartnerQuery::TYPE_CPF => SensitiveData::cpf($normalizedTerm, ''),
             PartnerQuery::TYPE_CODE => $normalizedTerm,
             default => null,
         };
-    }
-
-    private function maskEmail(string $email): string
-    {
-        [$name, $domain] = array_pad(explode('@', $email, 2), 2, '');
-
-        return mb_substr($name, 0, 2).'***@'.($domain ? '***'.mb_substr($domain, (int) mb_strpos($domain, '.')) : '***');
-    }
-
-    private function maskCpf(?string $cpf): ?string
-    {
-        $digits = preg_replace('/\D/', '', (string) $cpf);
-
-        if (strlen($digits) !== 11) {
-            return $cpf ? '***' : null;
-        }
-
-        return substr($digits, 0, 3).'.***.***-'.substr($digits, 9, 2);
     }
 }

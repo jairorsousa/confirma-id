@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\Schemas;
 
+use App\Support\SensitiveData;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -20,7 +21,8 @@ class UserInfolist
                                 TextEntry::make('name')
                                     ->label('Nome'),
                                 TextEntry::make('email')
-                                    ->label('E-mail'),
+                                    ->label('E-mail')
+                                    ->formatStateUsing(fn (?string $state): string => SensitiveData::email($state)),
                                 TextEntry::make('account_status')
                                     ->label('Status')
                                     ->badge(),
@@ -46,9 +48,11 @@ class UserInfolist
                                     ->placeholder('-'),
                                 TextEntry::make('profile.cpf')
                                     ->label('CPF')
+                                    ->formatStateUsing(fn (?string $state): string => SensitiveData::cpf($state))
                                     ->placeholder('-'),
                                 TextEntry::make('profile.phone')
                                     ->label('Telefone')
+                                    ->formatStateUsing(fn (?string $state): string => SensitiveData::phone($state))
                                     ->placeholder('-'),
                             ]),
                     ]),

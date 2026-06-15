@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\VerificationFileController;
 use App\Http\Controllers\App\UserVerificationController;
 use App\Http\Controllers\Partner\PartnerDashboardController;
 use App\Support\RoleRedirector;
@@ -30,6 +31,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('partner/query', [PartnerDashboardController::class, 'query'])
         ->middleware('role:partner')
         ->name('partner.query');
+
+    Route::get('admin/verification-files/{verificationFile}', [VerificationFileController::class, 'show'])
+        ->middleware('role:admin|super_admin')
+        ->name('admin.verification-files.show');
 });
 
 require __DIR__.'/settings.php';

@@ -27,6 +27,10 @@ class RegistrationTest extends TestCase
 
         $this->assertAuthenticated();
         $this->assertTrue(auth()->user()->hasRole('user'));
+        $this->assertDatabaseHas('activity_log', [
+            'event' => 'registered',
+            'description' => 'user.registered',
+        ]);
         $response->assertRedirect(route('app.dashboard', absolute: false));
     }
 }

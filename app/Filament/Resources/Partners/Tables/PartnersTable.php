@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Partners\Tables;
 
 use App\Models\Partner;
+use App\Support\SensitiveData;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
@@ -29,9 +30,11 @@ class PartnersTable
                     ->searchable(),
                 TextColumn::make('email')
                     ->label('E-mail')
+                    ->formatStateUsing(fn (?string $state): string => SensitiveData::email($state))
                     ->searchable(),
                 TextColumn::make('phone')
                     ->label('Telefone')
+                    ->formatStateUsing(fn (?string $state): string => SensitiveData::phone($state))
                     ->searchable(),
                 TextColumn::make('status')
                     ->label('Status')

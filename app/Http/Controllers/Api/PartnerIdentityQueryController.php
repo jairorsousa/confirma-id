@@ -30,6 +30,8 @@ class PartnerIdentityQueryController extends Controller
             throw new AuthorizationException('Nenhum parceiro ativo encontrado para este token.');
         }
 
+        $this->authorize('query', $membership->partner);
+
         $token = $request->user()->currentAccessToken();
 
         return response()->json($queryIdentity->handle(
@@ -39,6 +41,7 @@ class PartnerIdentityQueryController extends Controller
             ipAddress: $request->ip(),
             origin: 'api',
             credentialLabel: $token?->name,
+            actor: $request->user(),
         ));
     }
 }
