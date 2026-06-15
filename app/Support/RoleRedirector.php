@@ -9,7 +9,7 @@ class RoleRedirector
     public static function pathFor(User $user): string
     {
         if ($user->hasAnyRole(['admin', 'super_admin'])) {
-            return route('admin.dashboard', absolute: false);
+            return url('/admin', [], false);
         }
 
         if ($user->hasRole('partner')) {

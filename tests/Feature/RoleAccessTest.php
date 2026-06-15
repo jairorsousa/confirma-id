@@ -61,6 +61,6 @@ class RoleAccessTest extends TestCase
         $this->post('/logout');
 
         $this->post('/login', ['email' => $admin->email, 'password' => 'password'])
-            ->assertRedirect(route('admin.dashboard', absolute: false));
+            ->assertRedirect('/admin');
     }
 }

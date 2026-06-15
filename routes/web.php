@@ -26,9 +26,6 @@ Route::middleware(['auth'])->group(function () {
         return Inertia::render('partner/dashboard');
     })->middleware('role:partner|admin|super_admin')->name('partner.dashboard');
 
-    Route::get('admin', function () {
-        return Inertia::render('admin/dashboard');
-    })->middleware('role:admin|super_admin')->name('admin.dashboard');
 });
 
 require __DIR__.'/settings.php';
