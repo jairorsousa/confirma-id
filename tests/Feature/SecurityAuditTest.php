@@ -52,11 +52,17 @@ class SecurityAuditTest extends TestCase
         $admin->assignRole('admin');
         $user = User::factory()->create();
         $user->assignRole('user');
+        $partnerUser = User::factory()->create();
+        $partnerUser->assignRole('partner');
 
         $this->get(route('admin.verification-files.show', $file))
             ->assertRedirect('/login');
 
         $this->actingAs($user)
+            ->get(route('admin.verification-files.show', $file))
+            ->assertForbidden();
+
+        $this->actingAs($partnerUser)
             ->get(route('admin.verification-files.show', $file))
             ->assertForbidden();
 

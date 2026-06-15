@@ -83,6 +83,64 @@ class PartnerIdentityQueryTest extends TestCase
         ]);
     }
 
+    public function test_partner_query_returns_safe_status_for_non_approved_verifications(): void
+    {
+        [$partnerUser] = $this->partnerUser();
+        $token = $partnerUser->createToken('status-token')->plainTextToken;
+
+        $underReview = $this->identityWithStatus(
+            status: Verification::STATUS_UNDER_REVIEW,
+            email: 'under-review@example.com',
+        );
+        $rejected = $this->identityWithStatus(
+            status: Verification::STATUS_REJECTED,
+            email: 'rejected@example.com',
+        );
+        $blocked = $this->identityWithStatus(
+            status: Verification::STATUS_BLOCKED,
+            email: 'blocked@example.com',
+        );
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->postJson('/api/partner/identity-query', [
+                'query_type' => PartnerQuery::TYPE_EMAIL,
+                'term' => $underReview->email,
+            ])
+            ->assertOk()
+            ->assertJson([
+                'verified' => false,
+                'status' => PartnerQuery::RESULT_UNDER_REVIEW,
+                'verification_code' => null,
+            ])
+            ->assertJsonMissingPath('document_front');
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->postJson('/api/partner/identity-query', [
+                'query_type' => PartnerQuery::TYPE_EMAIL,
+                'term' => $rejected->email,
+            ])
+            ->assertOk()
+            ->assertJson([
+                'verified' => false,
+                'status' => PartnerQuery::RESULT_NOT_FOUND,
+                'verification_code' => null,
+            ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->postJson('/api/partner/identity-query', [
+                'query_type' => PartnerQuery::TYPE_EMAIL,
+                'term' => $blocked->email,
+            ])
+            ->assertOk()
+            ->assertJson([
+                'verified' => false,
+                'status' => PartnerQuery::RESULT_BLOCKED,
+                'verification_code' => null,
+            ]);
+
+        $this->assertDatabaseCount('partner_queries', 3);
+    }
+
     public function test_inactive_partner_cannot_query(): void
     {
         [$partnerUser] = $this->partnerUser(['status' => Partner::STATUS_INACTIVE]);
@@ -184,5 +242,23 @@ class PartnerIdentityQueryTest extends TestCase
         ]);
 
         return [$user, $verification];
+    }
+
+    private function identityWithStatus(string $status, string $email): User
+    {
+        $user = User::factory()->create([
+            'email' => $email,
+        ]);
+        UserProfile::factory()->create([
+            'user_id' => $user->id,
+        ]);
+        Verification::factory()->create([
+            'user_id' => $user->id,
+            'status' => $status,
+            'submitted_at' => now()->subDay(),
+            'verification_code' => $status === Verification::STATUS_APPROVED ? 'CID-'.fake()->unique()->numerify('######') : null,
+        ]);
+
+        return $user;
     }
 }

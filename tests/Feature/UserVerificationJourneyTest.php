@@ -100,6 +100,25 @@ class UserVerificationJourneyTest extends TestCase
         Storage::disk('s3')->assertMissing('verifications/1/front.jpg');
     }
 
+    public function test_each_verification_file_is_required(): void
+    {
+        foreach (['document_front', 'document_back', 'selfie'] as $missingFile) {
+            $user = User::factory()->create();
+            $user->assignRole('user');
+
+            $payload = $this->validVerificationPayload();
+            unset($payload[$missingFile]);
+
+            $this->actingAs($user)
+                ->post(route('app.verification.store'), $payload)
+                ->assertSessionHasErrors([$missingFile]);
+
+            $this->assertDatabaseMissing('verifications', [
+                'user_id' => $user->id,
+            ]);
+        }
+    }
+
     public function test_confirma_id_code_is_only_exposed_for_approved_verification(): void
     {
         $user = User::factory()->create();
@@ -130,5 +149,24 @@ class UserVerificationJourneyTest extends TestCase
                 ->component('app/dashboard')
                 ->where('verification.verification_code', 'CID-222222')
             );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validVerificationPayload(): array
+    {
+        return [
+            'full_name' => 'Pessoa Teste',
+            'cpf' => fake()->unique()->numerify('###########'),
+            'birth_date' => '1990-01-01',
+            'phone' => '11999999999',
+            'document_type' => 'rg',
+            'document_front' => UploadedFile::fake()->image('front.jpg')->size(512),
+            'document_back' => UploadedFile::fake()->image('back.jpg')->size(512),
+            'selfie' => UploadedFile::fake()->image('selfie.jpg')->size(512),
+            'accept_terms' => '1',
+            'accept_privacy' => '1',
+        ];
     }
 }
