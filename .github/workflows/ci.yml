@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+  push:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality, Tests and Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare environment
+        run: cp .env.example .env
+
+      - name: Build application image
+        run: docker compose build app
+
+      - name: Install PHP dependencies
+        run: docker compose run --rm app composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Install Node dependencies
+        run: docker compose run --rm node npm ci
+
+      - name: Generate application key
+        run: docker compose run --rm app php artisan key:generate --ansi
+
+      - name: Check PHP formatting
+        run: docker compose run --rm app vendor/bin/pint --test
+
+      - name: Check frontend quality
+        run: docker compose run --rm node npm run quality
+
+      - name: Run automated tests
+        run: docker compose run --rm app php artisan test
+
+      - name: Build frontend assets
+        run: docker compose run --rm node npm run build
+
+      - name: Stop containers
+        if: always()
+        run: docker compose down --volumes --remove-orphans

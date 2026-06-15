@@ -157,6 +157,7 @@ export default function UserDashboard({ profile, verification, can_submit }: { p
         accept_terms: false,
         accept_privacy: false,
     });
+    const formErrors = errors as typeof errors & { verification?: string };
 
     const canAdvance =
         step === 0
@@ -253,7 +254,7 @@ export default function UserDashboard({ profile, verification, can_submit }: { p
                         </nav>
 
                         <section className="border-sidebar-border/70 rounded-md border p-5">
-                            <InputError message={errors.verification} className="mb-4" />
+                            <InputError message={formErrors.verification} className="mb-4" />
 
                             {step === 0 && (
                                 <div className="grid gap-5 md:grid-cols-2">

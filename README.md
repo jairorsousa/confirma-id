@@ -61,6 +61,8 @@ Super admin: superadmin@confirmaid.local
 docker compose up -d
 docker compose ps
 docker compose logs -f app
+docker compose exec app vendor/bin/pint --test
+docker compose exec node npm run quality
 docker compose exec app php artisan test
 docker compose exec node npm run build
 docker compose exec app php artisan migrate
@@ -72,3 +74,4 @@ docker compose exec app php artisan db:seed
 - `prd-confirmaid.md`
 - `design-system-confirmaid.md`
 - `plano-desenvolvimento-confirmaid.md`
+- `docs/ci-versionamento-continuo.md`
