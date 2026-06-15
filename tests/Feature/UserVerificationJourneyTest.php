@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\Verification;
+use App\Notifications\VerificationStatusNotification;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
@@ -20,6 +22,7 @@ class UserVerificationJourneyTest extends TestCase
         parent::setUp();
 
         $this->seed(RolesAndPermissionsSeeder::class);
+        Notification::fake();
         Storage::fake('s3');
     }
 
@@ -67,6 +70,13 @@ class UserVerificationJourneyTest extends TestCase
             Storage::disk('s3')->assertExists($file->path);
             $this->assertSame('private', Storage::disk('s3')->getVisibility($file->path));
         }
+
+        Notification::assertSentTo(
+            $user,
+            VerificationStatusNotification::class,
+            fn (VerificationStatusNotification $notification): bool => $notification->status === Verification::STATUS_UNDER_REVIEW
+                && $notification->verification->is($verification),
+        );
     }
 
     public function test_user_cannot_submit_an_incomplete_verification(): void

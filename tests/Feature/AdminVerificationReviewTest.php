@@ -6,8 +6,10 @@ use App\Actions\Admin\ReviewVerification;
 use App\Models\User;
 use App\Models\Verification;
 use App\Models\VerificationReview;
+use App\Notifications\VerificationStatusNotification;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 use Spatie\Activitylog\Models\Activity;
 use Tests\TestCase;
@@ -23,6 +25,7 @@ class AdminVerificationReviewTest extends TestCase
         parent::setUp();
 
         $this->seed(RolesAndPermissionsSeeder::class);
+        Notification::fake();
         $this->reviewVerification = app(ReviewVerification::class);
     }
 
@@ -49,6 +52,12 @@ class AdminVerificationReviewTest extends TestCase
             'event' => VerificationReview::DECISION_APPROVED,
             'description' => 'verification.approved',
         ]);
+        Notification::assertSentTo(
+            $reviewed->user,
+            VerificationStatusNotification::class,
+            fn (VerificationStatusNotification $notification): bool => $notification->status === Verification::STATUS_APPROVED
+                && $notification->verification->is($reviewed),
+        );
     }
 
     public function test_rejecting_verification_requires_reason_and_records_history(): void
@@ -109,6 +118,24 @@ class AdminVerificationReviewTest extends TestCase
             'reason' => 'Suspeita de fraude.',
         ]);
         $this->assertSame(3, Activity::query()->count());
+        Notification::assertSentTo(
+            $rejected->user,
+            VerificationStatusNotification::class,
+            fn (VerificationStatusNotification $notification): bool => $notification->status === Verification::STATUS_REJECTED
+                && $notification->reason === 'Documento ilegivel.',
+        );
+        Notification::assertSentTo(
+            $correction->user,
+            VerificationStatusNotification::class,
+            fn (VerificationStatusNotification $notification): bool => $notification->status === Verification::STATUS_CORRECTION_REQUESTED
+                && $notification->reason === 'Envie selfie mais nitida.',
+        );
+        Notification::assertSentTo(
+            $blocked->user,
+            VerificationStatusNotification::class,
+            fn (VerificationStatusNotification $notification): bool => $notification->status === Verification::STATUS_BLOCKED
+                && $notification->reason === 'Suspeita de fraude.',
+        );
     }
 
     public function test_only_admin_profiles_can_access_filament_admin_panel(): void

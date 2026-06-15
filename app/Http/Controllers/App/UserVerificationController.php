@@ -7,6 +7,7 @@ use App\Models\Consent;
 use App\Models\UserProfile;
 use App\Models\Verification;
 use App\Models\VerificationFile;
+use App\Notifications\VerificationStatusNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -100,7 +101,7 @@ class UserVerificationController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($request, $user, $validated, $latestVerification): void {
+        $verification = DB::transaction(function () use ($request, $user, $validated, $latestVerification): Verification {
             $user->profile()->updateOrCreate(
                 ['user_id' => $user->id],
                 [
@@ -160,7 +161,14 @@ class UserVerificationController extends Controller
                     ],
                 ])
                 ->log('verification.documents_uploaded');
+
+            return $verification->refresh();
         });
+
+        $user->notify(new VerificationStatusNotification(
+            verification: $verification,
+            status: Verification::STATUS_UNDER_REVIEW,
+        ));
 
         return to_route('app.dashboard')->with('status', 'verification-submitted');
     }

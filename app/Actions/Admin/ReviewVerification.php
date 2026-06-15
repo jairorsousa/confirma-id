@@ -5,6 +5,7 @@ namespace App\Actions\Admin;
 use App\Models\User;
 use App\Models\Verification;
 use App\Models\VerificationReview;
+use App\Notifications\VerificationStatusNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -72,7 +73,7 @@ class ReviewVerification
             ]);
         }
 
-        return DB::transaction(function () use ($verification, $admin, $decision, $status, $reason, $notes): Verification {
+        $reviewedVerification = DB::transaction(function () use ($verification, $admin, $decision, $status, $reason, $notes): Verification {
             $verification->forceFill([
                 'status' => $status,
                 'verification_code' => $status === Verification::STATUS_APPROVED
@@ -103,6 +104,14 @@ class ReviewVerification
 
             return $verification->refresh();
         });
+
+        $reviewedVerification->user->notify(new VerificationStatusNotification(
+            verification: $reviewedVerification,
+            status: $status,
+            reason: $reason,
+        ));
+
+        return $reviewedVerification;
     }
 
     private function generateCode(): string
