@@ -26,12 +26,21 @@ class Partner extends Model
         'email',
         'phone',
         'status',
+        'plan_name',
+        'can_query_cpf',
         'api_key_hash',
     ];
 
     protected $hidden = [
         'api_key_hash',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'can_query_cpf' => 'boolean',
+        ];
+    }
 
     public function members(): HasMany
     {

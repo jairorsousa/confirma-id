@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\App\UserVerificationController;
+use App\Http\Controllers\Partner\PartnerDashboardController;
 use App\Support\RoleRedirector;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -22,10 +23,13 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('role:user')
         ->name('app.verification.store');
 
-    Route::get('partner', function () {
-        return Inertia::render('partner/dashboard');
-    })->middleware('role:partner|admin|super_admin')->name('partner.dashboard');
+    Route::get('partner', [PartnerDashboardController::class, 'show'])
+        ->middleware('role:partner|admin|super_admin')
+        ->name('partner.dashboard');
 
+    Route::post('partner/query', [PartnerDashboardController::class, 'query'])
+        ->middleware('role:partner')
+        ->name('partner.query');
 });
 
 require __DIR__.'/settings.php';

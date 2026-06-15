@@ -21,6 +21,8 @@ class PartnerFactory extends Factory
             'email' => fake()->unique()->companyEmail(),
             'phone' => fake()->numerify('113#######'),
             'status' => Partner::STATUS_ACTIVE,
+            'plan_name' => 'basic',
+            'can_query_cpf' => false,
             'api_key_hash' => Hash::make(fake()->uuid()),
         ];
     }

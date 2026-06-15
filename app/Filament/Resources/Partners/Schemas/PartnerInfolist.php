@@ -20,8 +20,11 @@ class PartnerInfolist
                     ->label('Email address'),
                 TextEntry::make('phone'),
                 TextEntry::make('status'),
-                TextEntry::make('api_key_hash')
-                    ->placeholder('-'),
+                TextEntry::make('plan_name')
+                    ->label('Plano'),
+                TextEntry::make('can_query_cpf')
+                    ->label('Consulta CPF')
+                    ->formatStateUsing(fn (bool $state): string => $state ? 'Permitida' : 'Bloqueada'),
                 TextEntry::make('created_at')
                     ->dateTime()
                     ->placeholder('-'),

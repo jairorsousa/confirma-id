@@ -48,6 +48,15 @@ class PartnersTable
                         default => 'gray',
                     })
                     ->searchable(),
+                TextColumn::make('plan_name')
+                    ->label('Plano')
+                    ->badge()
+                    ->searchable(),
+                TextColumn::make('can_query_cpf')
+                    ->label('CPF')
+                    ->formatStateUsing(fn (bool $state): string => $state ? 'Permitido' : 'Bloqueado')
+                    ->badge()
+                    ->color(fn (bool $state): string => $state ? 'success' : 'gray'),
                 TextColumn::make('created_at')
                     ->label('Criado em')
                     ->dateTime()

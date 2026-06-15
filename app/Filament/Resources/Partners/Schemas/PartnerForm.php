@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Partners\Schemas;
 
 use App\Models\Partner;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
@@ -41,6 +42,12 @@ class PartnerForm
                     ])
                     ->required()
                     ->default(Partner::STATUS_ACTIVE),
+                TextInput::make('plan_name')
+                    ->label('Plano')
+                    ->required()
+                    ->default('basic'),
+                Checkbox::make('can_query_cpf')
+                    ->label('Permitir consulta por CPF'),
             ]);
     }
 }
