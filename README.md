@@ -75,3 +75,5 @@ docker compose exec app php artisan db:seed
 - `design-system-confirmaid.md`
 - `plano-desenvolvimento-confirmaid.md`
 - `docs/ci-versionamento-continuo.md`
+- `docs/checklist-seguranca-mvp.md`
+- `docs/checklist-analise-manual.md`

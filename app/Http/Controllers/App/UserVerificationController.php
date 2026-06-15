@@ -14,6 +14,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\File;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -82,9 +83,9 @@ class UserVerificationController extends Controller
             'birth_date' => ['required', 'date', 'before:-18 years'],
             'phone' => ['required', 'string', 'max:20'],
             'document_type' => ['required', Rule::in(['rg', 'cnh'])],
-            'document_front' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
-            'document_back' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
-            'selfie' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'document_front' => ['required', $this->documentFileRule()],
+            'document_back' => ['required', $this->documentFileRule()],
+            'selfie' => ['required', $this->documentFileRule()],
             'accept_terms' => ['accepted'],
             'accept_privacy' => ['accepted'],
         ]);
@@ -173,9 +174,17 @@ class UserVerificationController extends Controller
         return to_route('app.dashboard')->with('status', 'verification-submitted');
     }
 
+    private function documentFileRule(): File
+    {
+        return File::image()
+            ->types(config('confirmaid.uploads.allowed_image_mimetypes'))
+            ->max(config('confirmaid.uploads.max_file_kb'));
+    }
+
     private function storeVerificationFile(Verification $verification, string $fileType, UploadedFile $uploadedFile): void
     {
-        $extension = $uploadedFile->extension() ?: $uploadedFile->guessExtension() ?: 'jpg';
+        $mimeType = $uploadedFile->getMimeType() ?: 'application/octet-stream';
+        $extension = config("confirmaid.uploads.extension_by_mimetype.{$mimeType}") ?: 'bin';
         $path = Storage::disk('s3')->putFileAs(
             "verifications/{$verification->id}",
             $uploadedFile,
@@ -191,7 +200,7 @@ class UserVerificationController extends Controller
             'file_type' => $fileType,
             'disk' => 's3',
             'path' => $path,
-            'mime_type' => $uploadedFile->getMimeType() ?: 'application/octet-stream',
+            'mime_type' => $mimeType,
             'size_bytes' => $uploadedFile->getSize(),
             'uploaded_at' => now(),
         ]);

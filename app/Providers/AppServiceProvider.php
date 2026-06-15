@@ -43,7 +43,17 @@ class AppServiceProvider extends ServiceProvider
             $tokenId = $user?->currentAccessToken()?->id ?: 'no-token';
             $partnerKey = $membership?->partner_id ?: $request->ip();
 
-            return Limit::perMinute(60)->by($partnerKey.'|'.$tokenId);
+            return Limit::perMinute(config('confirmaid.rate_limits.partner_api_per_minute'))
+                ->by($partnerKey.'|'.$tokenId);
+        });
+
+        RateLimiter::for('partner-query', function (Request $request): Limit {
+            $user = $request->user();
+            $membership = $user ? app(ResolvePartnerForUser::class)->firstMembership($user) : null;
+            $partnerKey = $membership?->partner_id ?: $request->ip();
+
+            return Limit::perMinute(config('confirmaid.rate_limits.partner_web_per_minute'))
+                ->by($partnerKey.'|'.($user?->id ?: 'guest'));
         });
     }
 }

@@ -29,5 +29,12 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->dontFlash([
+            'password',
+            'password_confirmation',
+            'current_password',
+            'document_front',
+            'document_back',
+            'selfie',
+        ]);
     })->create();

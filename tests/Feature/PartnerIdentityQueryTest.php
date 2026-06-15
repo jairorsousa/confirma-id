@@ -10,6 +10,7 @@ use App\Models\UserProfile;
 use App\Models\Verification;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
 
 class PartnerIdentityQueryTest extends TestCase
@@ -198,6 +199,38 @@ class PartnerIdentityQueryTest extends TestCase
                 ->where('stats.total_queries', 1)
                 ->has('recent_queries', 1)
             );
+    }
+
+    public function test_partner_web_query_is_rate_limited(): void
+    {
+        Config::set('confirmaid.rate_limits.partner_web_per_minute', 1);
+
+        [$partnerUser, $partner] = $this->partnerUser();
+
+        $this->actingAs($partnerUser)
+            ->from('/partner')
+            ->post('/partner/query', [
+                'query_type' => PartnerQuery::TYPE_EMAIL,
+                'term' => 'first@example.com',
+            ])
+            ->assertRedirect('/partner');
+
+        $this->actingAs($partnerUser)
+            ->from('/partner')
+            ->post('/partner/query', [
+                'query_type' => PartnerQuery::TYPE_EMAIL,
+                'term' => 'second@example.com',
+            ])
+            ->assertStatus(429);
+
+        $this->assertDatabaseHas('partner_queries', [
+            'partner_id' => $partner->id,
+            'query_type' => PartnerQuery::TYPE_EMAIL,
+            'queried_term_masked' => 'fi***@***.com',
+            'result' => PartnerQuery::RESULT_NOT_FOUND,
+            'origin' => 'web',
+        ]);
+        $this->assertDatabaseCount('partner_queries', 1);
     }
 
     /**

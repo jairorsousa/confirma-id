@@ -29,7 +29,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('partner.dashboard');
 
     Route::post('partner/query', [PartnerDashboardController::class, 'query'])
-        ->middleware('role:partner')
+        ->middleware(['role:partner', 'throttle:partner-query'])
         ->name('partner.query');
 
     Route::get('admin/verification-files/{verificationFile}', [VerificationFileController::class, 'show'])

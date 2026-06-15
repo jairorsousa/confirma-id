@@ -8,6 +8,7 @@ use App\Notifications\VerificationStatusNotification;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
@@ -117,6 +118,44 @@ class UserVerificationJourneyTest extends TestCase
                 'user_id' => $user->id,
             ]);
         }
+    }
+
+    public function test_verification_rejects_file_with_spoofed_image_extension(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('user');
+
+        $payload = $this->validVerificationPayload();
+        $payload['document_front'] = UploadedFile::fake()->create('front.jpg', 10, 'text/plain');
+
+        $this->actingAs($user)
+            ->post(route('app.verification.store'), $payload)
+            ->assertSessionHasErrors(['document_front']);
+
+        $this->assertDatabaseMissing('verifications', [
+            'user_id' => $user->id,
+        ]);
+    }
+
+    public function test_verification_rejects_file_above_configured_upload_limit(): void
+    {
+        Config::set('confirmaid.uploads.max_file_kb', 100);
+
+        $user = User::factory()->create();
+        $user->assignRole('user');
+
+        $payload = $this->validVerificationPayload();
+        $payload['document_front'] = UploadedFile::fake()->image('front.jpg')->size(101);
+        $payload['document_back'] = UploadedFile::fake()->image('back.jpg')->size(50);
+        $payload['selfie'] = UploadedFile::fake()->image('selfie.jpg')->size(50);
+
+        $this->actingAs($user)
+            ->post(route('app.verification.store'), $payload)
+            ->assertSessionHasErrors(['document_front']);
+
+        $this->assertDatabaseMissing('verifications', [
+            'user_id' => $user->id,
+        ]);
     }
 
     public function test_confirma_id_code_is_only_exposed_for_approved_verification(): void
